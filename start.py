@@ -9,5 +9,6 @@ async def start_handler(client, message: Message):
     await message.reply_text(
         "Halo! Bot siap digunakan.\n\n"
         "tes tes tes\n"
-        "BALERAROBY"
+        "BALERAROBY\n\n"
+        "Halo"
     )
