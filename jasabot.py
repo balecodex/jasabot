@@ -1,5 +1,6 @@
 # jasabot.py
 import os
+import sys
 import json
 import importlib
 import time
@@ -21,8 +22,13 @@ bot = Client(
 )
 
 FEATURES_FOLDER = "."
-feature_files = {}
-feature_handlers = {}  # modul_name -> list handler
+feature_files = {}        # file -> last mtime
+feature_handlers = {}     # modul_name -> list of handlers
+
+def clear_pyc_cache(modul_name):
+    """Hapus cache modul jika ada di sys.modules"""
+    if modul_name in sys.modules:
+        del sys.modules[modul_name]
 
 def load_or_reload_features():
     for file in os.listdir(FEATURES_FOLDER):
@@ -33,9 +39,13 @@ def load_or_reload_features():
 
             if file not in feature_files or feature_files[file] != mtime:
                 try:
-                    # reload modul
+                    # Hapus cache lama
+                    clear_pyc_cache(modul_name)
+
+                    # import atau reload
                     if file in feature_files:
-                        mod = importlib.reload(importlib.import_module(modul_name))
+                        mod = importlib.import_module(modul_name)
+                        mod = importlib.reload(mod)
                         print(f"[RELOAD] {modul_name}")
                     else:
                         mod = importlib.import_module(modul_name)
@@ -45,20 +55,19 @@ def load_or_reload_features():
                     if modul_name in feature_handlers:
                         for h in feature_handlers[modul_name]:
                             bot.remove_handler(h)
+                        print(f"[INFO] Handler lama {modul_name} dihapus")
                         feature_handlers[modul_name] = []
 
-                    # ambil handler sebelum dan sesudah register
-                    handlers_before = list(bot.handlers)
+                    # register handler baru
+                    before = list(bot.handlers)
                     if hasattr(mod, "register"):
                         mod.register(bot)
-                    handlers_after = list(bot.handlers)
-
-                    # simpan handler baru untuk modul ini
-                    new_handlers = [h for h in handlers_after if h not in handlers_before]
+                    after = list(bot.handlers)
+                    new_handlers = [h for h in after if h not in before]
                     feature_handlers[modul_name] = new_handlers
 
                     feature_files[file] = mtime
-                    print(f"[OK] {modul_name} terupdate, handler baru aktif")
+                    print(f"[OK] {modul_name} terupdate, {len(new_handlers)} handler aktif")
 
                 except Exception as e:
                     print(f"[ERROR] {modul_name}: {e}")
