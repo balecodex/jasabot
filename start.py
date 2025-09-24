@@ -7,6 +7,5 @@ def register(bot):
     async def start_handler(client, message: Message):
         await message.reply_text(
             "Halo! Bot siap digunakan.\n\n"
-            "Kirim /cek <koin> untuk analisa koin.\n"
-            "Fitur hot-reload aktif, tambahkan file fitur baru tanpa restart bot."
+            "tes tes tes"
         )
