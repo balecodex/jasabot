@@ -22,11 +22,10 @@ bot = Client(
 )
 
 FEATURES_FOLDER = "."
-feature_files = {}        # file -> last mtime
-feature_handlers = {}     # modul_name -> list of handlers
+feature_files = {}       # file -> last mtime
+feature_handlers = {}    # modul_name -> list of (handler, filter, type)
 
 def clear_pyc_cache(modul_name):
-    """Hapus cache modul jika ada di sys.modules"""
     if modul_name in sys.modules:
         del sys.modules[modul_name]
 
@@ -39,10 +38,8 @@ def load_or_reload_features():
 
             if file not in feature_files or feature_files[file] != mtime:
                 try:
-                    # Hapus cache lama
                     clear_pyc_cache(modul_name)
 
-                    # import atau reload
                     if file in feature_files:
                         mod = importlib.import_module(modul_name)
                         mod = importlib.reload(mod)
@@ -51,7 +48,7 @@ def load_or_reload_features():
                         mod = importlib.import_module(modul_name)
                         print(f"[LOAD] {modul_name}")
 
-                    # hapus handler lama
+                    # hapus handler lama (dari list sendiri)
                     if modul_name in feature_handlers:
                         for h in feature_handlers[modul_name]:
                             bot.remove_handler(h)
@@ -59,11 +56,9 @@ def load_or_reload_features():
                         feature_handlers[modul_name] = []
 
                     # register handler baru
-                    before = list(bot.handlers)
+                    new_handlers = []
                     if hasattr(mod, "register"):
-                        mod.register(bot)
-                    after = list(bot.handlers)
-                    new_handlers = [h for h in after if h not in before]
+                        mod.register(bot, new_handlers)  # kirim list kosong untuk diisi
                     feature_handlers[modul_name] = new_handlers
 
                     feature_files[file] = mtime
