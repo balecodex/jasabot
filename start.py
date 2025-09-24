@@ -8,4 +8,5 @@ def register(bot):
         await message.reply_text(
             "Halo! Bot siap digunakan.\n\n"
             "tes tes tes"
+            "BALERAROBY"
         )
