@@ -21,46 +21,47 @@ bot = Client(
 )
 
 FEATURES_FOLDER = "."
-feature_files = {}  # simpan file yang sudah di-load
-feature_handlers = {}  # simpan semua handler per modul
+feature_files = {}
+feature_handlers = {}  # modul_name -> list handler
 
 def load_or_reload_features():
-    global feature_files, feature_handlers
     for file in os.listdir(FEATURES_FOLDER):
         if file.endswith(".py") and file != "jasabot.py":
             path = os.path.join(FEATURES_FOLDER, file)
             mtime = os.path.getmtime(path)
             modul_name = file[:-3]
 
-            # reload jika ada perubahan
             if file not in feature_files or feature_files[file] != mtime:
                 try:
+                    # reload modul
                     if file in feature_files:
-                        mod = importlib.import_module(modul_name)
-                        importlib.reload(mod)
+                        mod = importlib.reload(importlib.import_module(modul_name))
                         print(f"[RELOAD] {modul_name}")
                     else:
                         mod = importlib.import_module(modul_name)
                         print(f"[LOAD] {modul_name}")
 
-                    # hapus handler lama kalau ada
+                    # hapus handler lama
                     if modul_name in feature_handlers:
                         for h in feature_handlers[modul_name]:
                             bot.remove_handler(h)
                         feature_handlers[modul_name] = []
 
-                    # register handler baru
-                    handlers_before = bot.handlers.copy()
+                    # ambil handler sebelum dan sesudah register
+                    handlers_before = list(bot.handlers)
                     if hasattr(mod, "register"):
                         mod.register(bot)
-                    # ambil handler baru yang ditambahkan
-                    new_handlers = [h for h in bot.handlers if h not in handlers_before]
+                    handlers_after = list(bot.handlers)
+
+                    # simpan handler baru untuk modul ini
+                    new_handlers = [h for h in handlers_after if h not in handlers_before]
                     feature_handlers[modul_name] = new_handlers
 
                     feature_files[file] = mtime
-                    print(f"[OK] Fitur {modul_name} siap dengan handler baru")
+                    print(f"[OK] {modul_name} terupdate, handler baru aktif")
+
                 except Exception as e:
-                    print(f"[ERROR] gagal load {modul_name}: {e}")
+                    print(f"[ERROR] {modul_name}: {e}")
 
 def feature_watcher():
     while True:
@@ -70,5 +71,5 @@ def feature_watcher():
 Thread(target=feature_watcher, daemon=True).start()
 
 if __name__ == "__main__":
-    print("Bot sedang berjalan... (hot-reload penuh aktif)")
+    print("Bot aktif... (hot-reload penuh)")
     bot.run()
